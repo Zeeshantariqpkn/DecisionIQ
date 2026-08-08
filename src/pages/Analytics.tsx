@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -7,16 +7,54 @@ import {
 import { Breadcrumb } from '../components/ui/Breadcrumb';
 import { ChartCard } from '../components/ui/ChartCard';
 import { DataTable } from '../components/ui/DataTable';
+import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import {
-  dataOverview,
-  columnTypes,
-  summaryStats,
-  correlationMatrix,
-  outliers,
-  trendAnalysis,
-} from '../data/mockData';
+  fetchAnalysisOverview,
+  fetchAnalysisColumns,
+  fetchAnalysisSummaryStats,
+  fetchAnalysisCorrelations,
+  fetchAnalysisOutliers,
+  fetchAnalysisTrends,
+} from '../services/dataService';
 
 export default function Analytics() {
+  const [data, setData] = useState<{
+    overview: { total_rows: number; total_columns: number; numeric_columns: number; categorical_columns: number; missing_values: number; duplicate_rows: number; date_columns: number } | null;
+    columnTypes: Array<{ column_name: string; type: string; missing: number; unique_count: number }>;
+    summaryStats: Array<{ column_name: string; mean: string; median: string; std_dev: string; min: string; max: string }>;
+    correlationMatrix: Array<{ var1: string; var2: string; correlation: number }>;
+    outliers: Array<{ id: number; column_name: string; row: number; value: string; z_score: number; reason: string }>;
+    trendAnalysis: Array<{ month: string; actual: number | null; trend: number | null; forecast: number | null }>;
+  }>({
+    overview: null,
+    columnTypes: [],
+    summaryStats: [],
+    correlationMatrix: [],
+    outliers: [],
+    trendAnalysis: [],
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [overview, columnTypes, summaryStats, correlationMatrix, outliers, trendAnalysis] = await Promise.all([
+          fetchAnalysisOverview(),
+          fetchAnalysisColumns(),
+          fetchAnalysisSummaryStats(),
+          fetchAnalysisCorrelations(),
+          fetchAnalysisOutliers(),
+          fetchAnalysisTrends(),
+        ]);
+        setData({ overview, columnTypes: columnTypes ?? [], summaryStats: summaryStats ?? [], correlationMatrix: correlationMatrix ?? [], outliers: outliers ?? [], trendAnalysis: trendAnalysis ?? [] });
+      } catch (err) {
+        console.error('Failed to load analytics data:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
   const colTypeColumns = [
     { key: 'column', label: 'Column' },
     { key: 'type', label: 'Type' },
@@ -49,6 +87,16 @@ export default function Analytics() {
     return '#EF4444';
   };
 
+  if (loading) return <LoadingSpinner />;
+  if (!data.overview) return <LoadingSpinner />;
+
+  const overview = data.overview;
+  const colTypes = data.columnTypes;
+  const stats = data.summaryStats;
+  const corrMatrix = data.correlationMatrix;
+  const outlierData = data.outliers;
+  const trends = data.trendAnalysis;
+
   return (
     <div className="animate-fade-in">
       <Breadcrumb items={[{ label: 'Analytics' }]} />
@@ -56,13 +104,13 @@ export default function Analytics() {
       {/* Data Overview Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 mb-6">
         {[
-          { label: 'Total Rows', value: dataOverview.totalRows.toLocaleString(), color: '#2563EB' },
-          { label: 'Columns', value: dataOverview.totalColumns, color: '#3B82F6' },
-          { label: 'Numeric', value: dataOverview.numericColumns, color: '#8B5CF6' },
-          { label: 'Categorical', value: dataOverview.categoricalColumns, color: '#EC4899' },
-          { label: 'Missing Values', value: dataOverview.missingValues, color: '#F59E0B' },
-          { label: 'Duplicates', value: dataOverview.duplicateRows, color: '#EF4444' },
-          { label: 'Date Columns', value: dataOverview.dateColumns, color: '#10B981' },
+          { label: 'Total Rows', value: overview.total_rows.toLocaleString(), color: '#2563EB' },
+          { label: 'Columns', value: overview.total_columns, color: '#3B82F6' },
+          { label: 'Numeric', value: overview.numeric_columns, color: '#8B5CF6' },
+          { label: 'Categorical', value: overview.categorical_columns, color: '#EC4899' },
+          { label: 'Missing Values', value: overview.missing_values, color: '#F59E0B' },
+          { label: 'Duplicates', value: overview.duplicate_rows, color: '#EF4444' },
+          { label: 'Date Columns', value: overview.date_columns, color: '#10B981' },
         ].map((s, i) => (
           <div key={i} className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-card border border-border dark:border-slate-700 text-center">
             <div className="text-2xl font-bold text-foreground dark:text-white mb-1">{s.value}</div>
@@ -74,12 +122,12 @@ export default function Analytics() {
       <div className="grid lg:grid-cols-2 gap-5 mb-6">
         {/* Column Types */}
         <ChartCard title="Column Types & Missing Values" action={<MoreHorizontal size={16} className="text-muted cursor-pointer" />}>
-          <DataTable columns={colTypeColumns} rows={columnTypes.map((c) => ({ ...c, missing: c.missing, unique: c.unique }))} />
+          <DataTable columns={colTypeColumns} rows={colTypes.map((c) => ({ column: c.column_name, type: c.type, missing: c.missing, unique: c.unique_count }))} />
         </ChartCard>
 
         {/* Summary Statistics */}
         <ChartCard title="Summary Statistics" action={<MoreHorizontal size={16} className="text-muted cursor-pointer" />}>
-          <DataTable columns={statColumns} rows={summaryStats.map((s) => ({ ...s }))} />
+          <DataTable columns={statColumns} rows={stats.map((s) => ({ column: s.column_name, mean: s.mean, median: s.median, stdDev: s.std_dev, min: s.min, max: s.max }))} />
         </ChartCard>
       </div>
 
@@ -96,7 +144,7 @@ export default function Analytics() {
                 <React.Fragment key={row}>
                   <div className="text-xs font-medium text-foreground dark:text-white py-2">{row}</div>
                   {['Revenue', 'Units', 'Profit', 'Discount', 'Cost'].map((col) => {
-                    const match = correlationMatrix.find((c) =>
+                    const match = corrMatrix.find((c) =>
                       (c.var1 === row && c.var2 === col) || (c.var1 === col && c.var2 === row)
                     );
                     const val = match ? match.correlation : row === col ? 1 : 0;
@@ -124,7 +172,7 @@ export default function Analytics() {
         {/* Trend Analysis */}
         <ChartCard title="Trend Analysis & Forecast" action={<MoreHorizontal size={16} className="text-muted cursor-pointer" />}>
           <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={trendAnalysis}>
+            <LineChart data={trends}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748B' }} />
               <YAxis tick={{ fontSize: 11, fill: '#64748B' }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`} />
@@ -137,7 +185,7 @@ export default function Analytics() {
 
         {/* Outlier Detection */}
         <ChartCard title="Outlier Detection" action={<MoreHorizontal size={16} className="text-muted cursor-pointer" />}>
-          <DataTable columns={outlierCols} rows={outliers.map((o) => ({ ...o }))} />
+          <DataTable columns={outlierCols} rows={outlierData.map((o) => ({ ...o }))} />
         </ChartCard>
       </div>
     </div>

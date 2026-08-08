@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   RefreshCw,
   TrendingUp,
@@ -10,12 +10,22 @@ import {
 } from 'lucide-react';
 import { Breadcrumb } from '../components/ui/Breadcrumb';
 import { HealthScoreGauge } from '../components/ui/HealthScoreGauge';
-import { executiveSummary } from '../data/mockData';
+import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import { fetchExecutiveSummary } from '../services/dataService';
 import { useToast } from '../context/ToastContext';
 
 export default function ExecutiveSummary() {
   const { addToast } = useToast();
+  const [summary, setSummary] = useState<Record<string, unknown>>({});
+  const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
+
+  useEffect(() => {
+    fetchExecutiveSummary()
+      .then((data) => setSummary(data))
+      .catch((err) => console.error('Failed to load executive summary:', err))
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleRegenerate = () => {
     setRegenerating(true);
@@ -24,6 +34,17 @@ export default function ExecutiveSummary() {
       addToast('Executive summary regenerated', 'success');
     }, 2000);
   };
+
+  if (loading) return <LoadingSpinner />;
+
+  const healthScore = typeof summary.healthScore === 'number' ? summary.healthScore : 84;
+  const overview = (summary.overview as string) || '';
+  const keyFindings = (summary.keyFindings as string[]) || [];
+  const strengths = (summary.strengths as string[]) || [];
+  const weaknesses = (summary.weaknesses as string[]) || [];
+  const risks = (summary.risks as string[]) || [];
+  const opportunities = (summary.opportunities as string[]) || [];
+  const recommendations = (summary.recommendations as Array<{ action: string; priority: string; timeline: string; owner: string }>) || [];
 
   return (
     <div className="animate-fade-in max-w-5xl mx-auto">
@@ -48,16 +69,16 @@ export default function ExecutiveSummary() {
       {/* Health Score + Overview */}
       <div className="grid lg:grid-cols-3 gap-6 mb-8">
         <div className="lg:col-span-1 bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-card border border-border dark:border-slate-700 flex flex-col items-center justify-center">
-          <HealthScoreGauge score={executiveSummary.healthScore} size={180} />
+          <HealthScoreGauge score={healthScore} size={180} />
           <p className="text-sm text-muted dark:text-slate-400 mt-4 text-center">Based on financial performance, growth, risk, and market position</p>
         </div>
         <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-card border border-border dark:border-slate-700">
           <h2 className="text-lg font-bold text-foreground dark:text-white mb-4">Business Overview</h2>
-          <p className="text-sm text-muted dark:text-slate-400 leading-relaxed">{executiveSummary.overview}</p>
+          <p className="text-sm text-muted dark:text-slate-400 leading-relaxed">{overview}</p>
           <div className="mt-5">
             <h3 className="text-sm font-semibold text-foreground dark:text-white mb-3">Key Findings</h3>
             <ul className="space-y-2">
-              {executiveSummary.keyFindings.map((f, i) => (
+              {keyFindings.map((f: string, i: number) => (
                 <li key={i} className="flex items-start gap-2.5 text-sm text-foreground dark:text-white">
                   <CheckCircle2 size={16} className="text-success flex-shrink-0 mt-0.5" />
                   {f}
@@ -79,7 +100,7 @@ export default function ExecutiveSummary() {
             <h3 className="font-semibold text-foreground dark:text-white">Strengths</h3>
           </div>
           <ul className="space-y-2.5">
-            {executiveSummary.strengths.map((s, i) => (
+            {strengths.map((s: string, i: number) => (
               <li key={i} className="flex items-start gap-2 text-sm text-muted dark:text-slate-400">
                 <span className="text-success mt-0.5">•</span> {s}
               </li>
@@ -96,7 +117,7 @@ export default function ExecutiveSummary() {
             <h3 className="font-semibold text-foreground dark:text-white">Weaknesses</h3>
           </div>
           <ul className="space-y-2.5">
-            {executiveSummary.weaknesses.map((w, i) => (
+            {weaknesses.map((w: string, i: number) => (
               <li key={i} className="flex items-start gap-2 text-sm text-muted dark:text-slate-400">
                 <span className="text-warning mt-0.5">•</span> {w}
               </li>
@@ -113,7 +134,7 @@ export default function ExecutiveSummary() {
             <h3 className="font-semibold text-foreground dark:text-white">Risks</h3>
           </div>
           <ul className="space-y-2.5">
-            {executiveSummary.risks.map((r, i) => (
+            {risks.map((r: string, i: number) => (
               <li key={i} className="flex items-start gap-2 text-sm text-muted dark:text-slate-400">
                 <span className="text-destructive mt-0.5">•</span> {r}
               </li>
@@ -130,7 +151,7 @@ export default function ExecutiveSummary() {
             <h3 className="font-semibold text-foreground dark:text-white">Opportunities</h3>
           </div>
           <ul className="space-y-2.5">
-            {executiveSummary.opportunities.map((o, i) => (
+            {opportunities.map((o: string, i: number) => (
               <li key={i} className="flex items-start gap-2 text-sm text-muted dark:text-slate-400">
                 <span className="text-primary mt-0.5">•</span> {o}
               </li>
@@ -158,7 +179,7 @@ export default function ExecutiveSummary() {
               </tr>
             </thead>
             <tbody>
-              {executiveSummary.recommendations.map((r, i) => {
+              {recommendations.map((r, i) => {
                 const priorityColors: Record<string, string> = {
                   High: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30',
                   Medium: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30',

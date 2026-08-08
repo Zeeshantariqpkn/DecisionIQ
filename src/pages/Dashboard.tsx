@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import {
   DollarSign,
   TrendingUp,
@@ -39,18 +40,19 @@ import { ChartCard } from '../components/ui/ChartCard';
 import { RecommendationCard } from '../components/ui/RecommendationCard';
 import { AlertCard } from '../components/ui/AlertCard';
 import { Breadcrumb } from '../components/ui/Breadcrumb';
+import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import {
-  kpiData,
-  revenueTrend,
-  salesByProduct,
-  monthlyGrowth,
-  regionalSales,
-  customerGrowth,
-  profitMargin,
-  recentActivity,
-  businessAlerts,
-  aiRecommendations,
-} from '../data/mockData';
+  fetchKpiData,
+  fetchRevenueTrend,
+  fetchSalesByProduct,
+  fetchMonthlyGrowth,
+  fetchRegionalSales,
+  fetchCustomerGrowth,
+  fetchProfitMargin,
+  fetchRecentActivity,
+  fetchBusinessAlerts,
+  fetchAiRecommendations,
+} from '../services/dataService';
 import { Link } from 'react-router-dom';
 
 const kpiIcons: Record<string, React.ReactNode> = {
@@ -85,13 +87,76 @@ function formatCurrency(v: number) {
 }
 
 export default function Dashboard() {
+  const [data, setData] = useState({
+    kpiData: [] as Array<{ id: string; label: string; value: string; delta: number; deltaLabel: string; icon: string; color: string }>,
+    revenueTrend: [] as Array<{ month: string; revenue: number; profit: number; expenses: number }>,
+    salesByProduct: [] as Array<{ product: string; sales: number; color: string }>,
+    monthlyGrowth: [] as Array<{ month: string; growth: number; target: number }>,
+    regionalSales: [] as Array<{ region: string; sales: number; percentage: number }>,
+    customerGrowth: [] as Array<{ month: string; customers: number; churn: number }>,
+    profitMargin: [] as Array<{ month: string; margin: number }>,
+    recentActivity: [] as Array<{ id: number; action: string; time: string; user: string; icon: string }>,
+    businessAlerts: [] as Array<{ id: number; type: 'warning' | 'info' | 'success' | 'error'; title: string; message: string; time: string }>,
+    aiRecommendations: [] as Array<{ id: number; title: string; description: string; impact: string; icon: string }>,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [
+          kpiData,
+          revenueTrend,
+          salesByProduct,
+          monthlyGrowth,
+          regionalSales,
+          customerGrowth,
+          profitMargin,
+          recentActivity,
+          businessAlerts,
+          aiRecommendations,
+        ] = await Promise.all([
+          fetchKpiData(),
+          fetchRevenueTrend(),
+          fetchSalesByProduct(),
+          fetchMonthlyGrowth(),
+          fetchRegionalSales(),
+          fetchCustomerGrowth(),
+          fetchProfitMargin(),
+          fetchRecentActivity(),
+          fetchBusinessAlerts(),
+          fetchAiRecommendations(),
+        ]);
+        setData({
+          kpiData: kpiData ?? [],
+          revenueTrend: revenueTrend ?? [],
+          salesByProduct: salesByProduct ?? [],
+          monthlyGrowth: monthlyGrowth ?? [],
+          regionalSales: regionalSales ?? [],
+          customerGrowth: customerGrowth ?? [],
+          profitMargin: profitMargin ?? [],
+          recentActivity: recentActivity ?? [],
+          businessAlerts: businessAlerts ?? [],
+          aiRecommendations: aiRecommendations ?? [],
+        });
+      } catch (err) {
+        console.error('Failed to load dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  if (loading) return <LoadingSpinner />;
+
   return (
     <div className="animate-fade-in">
       <Breadcrumb items={[{ label: 'Dashboard' }]} />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
-        {kpiData.map((kpi) => (
+        {data.kpiData.map((kpi) => (
           <KpiCard
             key={kpi.id}
             label={kpi.label}
@@ -109,7 +174,7 @@ export default function Dashboard() {
         {/* Revenue Trend */}
         <ChartCard title="Revenue & Profit Trend" action={<MoreHorizontal size={16} className="text-muted cursor-pointer" />}>
           <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={revenueTrend}>
+            <LineChart data={data.revenueTrend}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
               <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748B' }} />
               <YAxis tick={{ fontSize: 12, fill: '#64748B' }} tickFormatter={formatCurrency} />
@@ -123,13 +188,13 @@ export default function Dashboard() {
         {/* Sales by Product */}
         <ChartCard title="Sales by Product" action={<MoreHorizontal size={16} className="text-muted cursor-pointer" />}>
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={salesByProduct} layout="vertical">
+            <BarChart data={data.salesByProduct} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
               <XAxis type="number" tick={{ fontSize: 12, fill: '#64748B' }} tickFormatter={formatCurrency} />
               <YAxis type="category" dataKey="product" tick={{ fontSize: 12, fill: '#64748B' }} width={110} />
               <Tooltip formatter={(v) => formatCurrency(Number(v))} />
               <Bar dataKey="sales" radius={[0, 4, 4, 0]}>
-                {salesByProduct.map((entry, i) => (
+                {data.salesByProduct.map((entry, i) => (
                   <Cell key={i} fill={entry.color} />
                 ))}
               </Bar>
@@ -140,7 +205,7 @@ export default function Dashboard() {
         {/* Monthly Growth */}
         <ChartCard title="Monthly Growth Rate" action={<MoreHorizontal size={16} className="text-muted cursor-pointer" />}>
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={monthlyGrowth}>
+            <AreaChart data={data.monthlyGrowth}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
               <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748B' }} />
               <YAxis tick={{ fontSize: 12, fill: '#64748B' }} tickFormatter={(v) => `${v}%`} />
@@ -155,8 +220,8 @@ export default function Dashboard() {
         <ChartCard title="Regional Sales Distribution" action={<MoreHorizontal size={16} className="text-muted cursor-pointer" />}>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
-              <Pie data={regionalSales} dataKey="sales" nameKey="region" cx="50%" cy="50%" outerRadius={100} label={(props: any) => `${props.payload.region} ${props.payload.percentage}%`}>
-                {regionalSales.map((_, i) => (
+              <Pie data={data.regionalSales} dataKey="sales" nameKey="region" cx="50%" cy="50%" outerRadius={100} label={(props: any) => `${props.payload.region} ${props.payload.percentage}%`}>
+                {data.regionalSales.map((_, i) => (
                   <Cell key={i} fill={REGION_COLORS[i]} />
                 ))}
               </Pie>
@@ -168,7 +233,7 @@ export default function Dashboard() {
         {/* Customer Growth */}
         <ChartCard title="Customer Growth" action={<MoreHorizontal size={16} className="text-muted cursor-pointer" />}>
           <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={customerGrowth}>
+            <LineChart data={data.customerGrowth}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
               <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748B' }} />
               <YAxis tick={{ fontSize: 12, fill: '#64748B' }} />
@@ -181,7 +246,7 @@ export default function Dashboard() {
         {/* Profit Margin */}
         <ChartCard title="Profit Margin %" action={<MoreHorizontal size={16} className="text-muted cursor-pointer" />}>
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={profitMargin}>
+            <AreaChart data={data.profitMargin}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
               <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748B' }} />
               <YAxis domain={[20, 35]} tick={{ fontSize: 12, fill: '#64748B' }} tickFormatter={(v) => `${v}%`} />
@@ -225,7 +290,7 @@ export default function Dashboard() {
             <MoreHorizontal size={16} className="text-muted cursor-pointer" />
           </div>
           <div className="space-y-1">
-            {aiRecommendations.slice(0, 3).map((rec) => {
+            {data.aiRecommendations.slice(0, 3).map((rec) => {
               const IconComponent = recIconMap[rec.icon] || Target;
               return (
                 <RecommendationCard
@@ -244,7 +309,7 @@ export default function Dashboard() {
         <div className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-card border border-border dark:border-slate-700">
           <h3 className="text-sm font-semibold text-foreground dark:text-white mb-4">Recent Activity</h3>
           <div className="space-y-3">
-            {recentActivity.map((a) => (
+            {data.recentActivity.map((a) => (
               <div key={a.id} className="flex items-start gap-3">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-surface dark:bg-slate-700 flex-shrink-0">
                   <span className="text-muted">{activityIcons[a.icon]}</span>
@@ -267,7 +332,7 @@ export default function Dashboard() {
             <MoreHorizontal size={16} className="text-muted cursor-pointer" />
           </div>
           <div className="space-y-3">
-            {businessAlerts.map((a) => (
+            {data.businessAlerts.map((a) => (
               <AlertCard key={a.id} type={a.type} title={a.title} message={a.message} time={a.time} />
             ))}
           </div>

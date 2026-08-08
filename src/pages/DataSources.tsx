@@ -1,22 +1,62 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Upload, FileSpreadsheet, FileText, Trash2, Eye, Search } from 'lucide-react';
 import { Breadcrumb } from '../components/ui/Breadcrumb';
 import { DataTable } from '../components/ui/DataTable';
 import { ChartCard } from '../components/ui/ChartCard';
-import { datasets, datasetPreviewColumns, datasetPreviewRows } from '../data/mockData';
+import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import {
+  fetchDatasets,
+  fetchDatasetPreviewColumns,
+  deleteDataset,
+} from '../services/dataService';
 import { useToast } from '../context/ToastContext';
 
 export default function DataSources() {
   const { addToast } = useToast();
+  const [datasets, setDatasets] = useState<Array<{ id: number; name: string; rows: number; columns: number; upload_date: string; status: string; size: string }>>([]);
+  const [previewColumns, setPreviewColumns] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
   const [dragOver, setDragOver] = useState(false);
   const [selectedDataset, setSelectedDataset] = useState<number | null>(null);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [ds, cols] = await Promise.all([
+          fetchDatasets(),
+          fetchDatasetPreviewColumns(),
+        ]);
+        setDatasets(ds ?? []);
+        setPreviewColumns(cols ? cols.map((c: { column_name: string }) => c.column_name) : []);
+      } catch (err) {
+        console.error('Failed to load datasets:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const handleDelete = async (id: number, name: string) => {
+    try {
+      await deleteDataset(id);
+      setDatasets((prev) => prev.filter((d) => d.id !== id));
+      addToast(`Dataset "${name}" deleted`, 'success');
+    } catch {
+      addToast('Failed to delete dataset', 'error');
+    }
+  };
+
+  const datasetPreviewColumns = previewColumns;
+
+  if (loading) return <LoadingSpinner />;
 
   const columns = [
     { key: 'name', label: 'Dataset Name' },
     { key: 'rows', label: 'Rows' },
     { key: 'columns', label: 'Columns' },
     { key: 'size', label: 'Size' },
-    { key: 'uploadDate', label: 'Upload Date' },
+    { key: 'upload_date', label: 'Upload Date' },
     {
       key: 'status',
       label: 'Status',
@@ -43,7 +83,7 @@ export default function DataSources() {
             <Eye size={15} className="text-muted" />
           </button>
           <button
-            onClick={() => addToast(`Dataset "${row.name}" deleted`, 'success')}
+            onClick={() => handleDelete(row.id as number, row.name as string)}
             className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
             aria-label="Delete"
           >
@@ -104,7 +144,7 @@ export default function DataSources() {
           </div>
         </div>
       }>
-        <DataTable columns={columns} rows={datasets.map((d) => ({ ...d, id: d.id, actions: '' }))} />
+        <DataTable columns={columns} rows={datasets.map((d) => ({ ...d, actions: '' }))} />
       </ChartCard>
 
       {/* Preview Panel */}
@@ -118,14 +158,9 @@ export default function DataSources() {
               Close
             </button>
           </div>
-          <DataTable
-            columns={previewCols}
-            rows={datasetPreviewRows.map((row) => {
-              const obj: Record<string, unknown> = {};
-              datasetPreviewColumns.forEach((col, i) => { obj[col] = row[i]; });
-              return obj;
-            })}
-          />
+          <div className="text-sm text-muted dark:text-slate-400 text-center py-8">
+            Upload a CSV or Excel file to preview its contents here.
+          </div>
         </div>
       )}
     </div>

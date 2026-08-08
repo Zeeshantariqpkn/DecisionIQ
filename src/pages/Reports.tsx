@@ -1,15 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Filter } from 'lucide-react';
 import { Breadcrumb } from '../components/ui/Breadcrumb';
 import { ReportCard } from '../components/ui/ReportCard';
 import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/ui/EmptyState';
-import { reports } from '../data/mockData';
+import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import { fetchReports } from '../services/dataService';
 import { useToast } from '../context/ToastContext';
 
 export default function Reports() {
   const { addToast } = useToast();
+  const [reports, setReports] = useState<Array<{ id: number; title: string; date: string; status: string; pages: number; type: string }>>([]);
+  const [loading, setLoading] = useState(true);
   const [previewReport, setPreviewReport] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchReports()
+      .then((data) => setReports(data ?? []))
+      .catch((err) => console.error('Failed to load reports:', err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <LoadingSpinner />;
 
   return (
     <div className="animate-fade-in">

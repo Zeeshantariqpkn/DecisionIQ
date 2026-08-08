@@ -3,22 +3,67 @@ import { Send, Sparkles, RefreshCw, BrainCircuit, Wrench } from 'lucide-react';
 import { Breadcrumb } from '../components/ui/Breadcrumb';
 import { ChatBubble } from '../components/ui/ChatBubble';
 import { supabase } from '../lib/supabase';
-import {
-  initialChatMessages,
-  suggestedQuestions,
-  mockAiResponses,
-  type ChatMessage,
-} from '../data/mockData';
+import { fetchChatSuggestions } from '../services/dataService';
+import { useAuth } from '../context/AuthContext';
+
+export interface ChatMessage {
+  id: number;
+  sender: 'user' | 'ai';
+  text: string;
+  time: string;
+}
+
+const initialChatMessages: ChatMessage[] = [
+  {
+    id: 1,
+    sender: 'ai',
+    text: "Hello! I'm your DecisionIQ AI assistant. I have analyzed your company's data and I'm ready to answer questions about your business performance, trends, and recommendations. What would you like to know?",
+    time: 'Just now',
+  },
+];
+
+const mockAiResponses: Record<string, string> = {
+  'Why are sales decreasing in December?':
+    "Based on your data, the December dip (19% growth vs. 25% target) appears to be seasonal rather than structural. Over the past 3 years, December has consistently shown 15-20% lower growth due to:\n\n1. **Holiday slowdown**: Enterprise purchasing cycles pause in mid-December\n2. **Budget exhaustion**: Many clients have depleted annual budgets by Q4 end\n3. **Shorter sales month**: Effective selling days drop ~30% due to holidays\n\n**Recommendation**: Front-load Q4 targets to October-November and set realistic December expectations at 18-20% growth. Your January pipeline already shows recovery to 22% projected growth.",
+  'Which products should we promote next quarter?':
+    "Analyzing your product performance, here's my recommendation for Q1 priorities:\n\n**🥇 Priority 1: Enterprise Suite** ($1.25M ARR, 34% YoY growth)\n- Highest margin product (72% gross margin)\n- Strong European adoption signals expansion readiness\n\n**🥈 Priority 2: Analytics Pro** ($980K ARR, 22% YoY growth)\n- Mid-market sweet spot with shortest sales cycle (18 days avg)\n- High upsell potential to Enterprise Suite\n\n**🥉 Priority 3: Consulting** ($885K ARR, 28% YoY growth)\n- Drives product adoption and reduces churn\n- Creates stickiness for platform licenses\n\nConsider bundling Analytics Pro + Consulting as a Q1 promotion package.",
+  'How can we improve the Starter Plan retention?':
+    "The Starter Plan shows a 3.8% monthly churn rate vs. 1.8% for premium tiers. Analysis reveals:\n\n1. **Onboarding gap**: 42% of Starter users never use more than 2 features\n2. **Value realization**: Users who create 3+ reports in first 30 days have 85% lower churn\n3. **Upgrade timing**: The 90-day mark is when successful Starter users naturally upgrade\n\n**Action plan**:\n- Implement guided onboarding with milestone achievements\n- Add in-app prompts after 2nd report: 'Ready for advanced analytics?'\n- Create a 90-day nurture sequence with upgrade incentives\n- Introduce a 'Starter Plus' tier at $49/mo to bridge the gap",
+  'What actions should management take to reduce expenses?':
+    "Operating expenses at 50.3% of revenue exceed the 45% target by $228K annualized. Here's a data-driven action plan:\n\n**Quick Wins (30 days):**\n- Audit SaaS subscriptions: avg company waste is 30% ($45K savings)\n- Renegotiate cloud infrastructure: reserved instances save 28% ($38K)\n\n**Structural (90 days):**\n- Sales efficiency: cost per acquisition up 15% YoY — review channel mix ($62K)\n- Marketing ROI: content marketing drives 3x pipeline vs paid at half cost — rebalance ($55K)\n\n**Strategic (6 months):**\n- Automate manual reporting processes (saves ~15 hrs/week, $28K)\n- Evaluate office footprint with hybrid work patterns ($variable)\n\nTotal addressable: $228K+ annual savings identified.",
+  'Which region has the highest growth potential?':
+    "Europe is your #1 growth opportunity. Here's the data:\n\n| Region | Current Rev | YoY Growth | Market Size | TAM Capture |\n|--------|------------|------------|-------------|-------------|\n| Europe | $1.25M | 34% | $12B | 0.01% |\n| Asia Pacific | $720K | 22% | $8B | 0.009% |\n| LatAm | $320K | 18% | $3B | 0.01% |\n\nEurope shows:\n- 34% higher Enterprise Suite adoption than any other region\n- 28% shorter sales cycle for Analytics Pro\n- 92% NPS score (highest globally)\n\n**Recommendation**: Open a European sales hub in Amsterdam or Berlin by Q2, with 3-5 AEs. Projected ROI: 3.2x within 18 months.",
+  'Show me the correlation between discounts and profit':
+    "The correlation analysis reveals an important strategic insight:\n\n**Discount-Profit Correlation: r = -0.45** (moderate negative)\n\nKey findings:\n- Discounts above 15% reduce profit margins by an average of 8.2 percentage points\n- However, discounts of 5-10% on Enterprise Suite actually **increase** total profit through volume (elasticity > 1.5)\n- The worst-performing discount strategy is 20-25% on Analytics Pro — margin erosion without volume gain\n\n**Strategic recommendation**:\n- Cap standard discounts at 15%\n- Use 5-10% strategic discounts on Enterprise Suite for competitive deals\n- Eliminate 20%+ discounts on mid-tier products\n- Introduce value-based pricing instead of discounting for Analytics Pro",
+};
 
 type LiveMode = 'checking' | 'live' | 'demo';
 
 export default function AIChat() {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>(initialChatMessages);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [liveMode, setLiveMode] = useState<LiveMode>('checking');
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const nextIdRef = useRef(10);
+
+  useEffect(() => {
+    fetchChatSuggestions().then((data) => {
+      if (data) setSuggestedQuestions(data.map((q: { question: string }) => q.question));
+    }).catch(() => {
+      // Fallback suggestions if DB query fails
+      setSuggestedQuestions([
+        'Why are sales decreasing in December?',
+        'Which products should we promote next quarter?',
+        'How can we improve the Starter Plan retention?',
+        'What actions should management take to reduce expenses?',
+        'Which region has the highest growth potential?',
+        'Show me the correlation between discounts and profit',
+      ]);
+    });
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
