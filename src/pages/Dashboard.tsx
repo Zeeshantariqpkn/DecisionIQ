@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import {
   DollarSign,
   TrendingUp,
@@ -40,19 +39,18 @@ import { ChartCard } from '../components/ui/ChartCard';
 import { RecommendationCard } from '../components/ui/RecommendationCard';
 import { AlertCard } from '../components/ui/AlertCard';
 import { Breadcrumb } from '../components/ui/Breadcrumb';
-import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import {
-  fetchKpiData,
-  fetchRevenueTrend,
-  fetchSalesByProduct,
-  fetchMonthlyGrowth,
-  fetchRegionalSales,
-  fetchCustomerGrowth,
-  fetchProfitMargin,
-  fetchRecentActivity,
-  fetchBusinessAlerts,
-  fetchAiRecommendations,
-} from '../services/dataService';
+  kpiData,
+  revenueTrend,
+  salesByProduct,
+  monthlyGrowth,
+  regionalSales,
+  customerGrowth,
+  profitMargin,
+  recentActivity,
+  businessAlerts,
+  aiRecommendations,
+} from '../data/mockData';
 import { Link } from 'react-router-dom';
 
 const kpiIcons: Record<string, React.ReactNode> = {
