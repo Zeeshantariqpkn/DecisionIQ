@@ -1,7 +1,7 @@
 import { AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
 
 interface AlertCardProps {
-  type: 'warning' | 'info' | 'success';
+  type: 'warning' | 'info' | 'success' | 'error';
   title: string;
   message: string;
   time: string;
@@ -11,12 +11,14 @@ const icons = {
   warning: <AlertTriangle size={18} className="text-warning" />,
   info: <Info size={18} className="text-primary" />,
   success: <CheckCircle2 size={18} className="text-success" />,
+  error: <AlertTriangle size={18} className="text-destructive" />,
 };
 
 const bgColors = {
   warning: 'bg-amber-50 dark:bg-amber-900/20 border-l-warning',
   info: 'bg-blue-50 dark:bg-blue-900/20 border-l-primary',
   success: 'bg-emerald-50 dark:bg-emerald-900/20 border-l-success',
+  error: 'bg-red-50 dark:bg-red-900/20 border-l-destructive',
 };
 
 export function AlertCard({ type, title, message, time }: AlertCardProps) {
