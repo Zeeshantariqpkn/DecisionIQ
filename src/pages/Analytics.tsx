@@ -1,3 +1,4 @@
+import React from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -92,8 +93,8 @@ export default function Analytics() {
                 <div key={h} className="text-xs font-semibold text-muted dark:text-slate-400 text-center py-1">{h}</div>
               ))}
               {['Revenue', 'Units', 'Profit', 'Discount', 'Cost'].map((row) => (
-                <>
-                  <div key={`l-${row}`} className="text-xs font-medium text-foreground dark:text-white py-2">{row}</div>
+                <React.Fragment key={row}>
+                  <div className="text-xs font-medium text-foreground dark:text-white py-2">{row}</div>
                   {['Revenue', 'Units', 'Profit', 'Discount', 'Cost'].map((col) => {
                     const match = correlationMatrix.find((c) =>
                       (c.var1 === row && c.var2 === col) || (c.var1 === col && c.var2 === row)
@@ -112,7 +113,7 @@ export default function Analytics() {
                       </div>
                     );
                   })}
-                </>
+                </React.Fragment>
               ))}
             </div>
           </div>
