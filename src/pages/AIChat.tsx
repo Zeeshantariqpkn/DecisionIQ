@@ -4,6 +4,7 @@ import { Breadcrumb } from '../components/ui/Breadcrumb';
 import { ChatBubble } from '../components/ui/ChatBubble';
 import { supabase } from '../lib/supabase';
 import { fetchChatSuggestions } from '../services/dataService';
+import { useAuth } from '../context/AuthContext';
 
 export interface ChatMessage {
   id: number;
@@ -39,6 +40,7 @@ const mockAiResponses: Record<string, string> = {
 type LiveMode = 'checking' | 'live' | 'demo';
 
 export default function AIChat() {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>(initialChatMessages);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);

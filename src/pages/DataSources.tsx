@@ -94,6 +94,8 @@ export default function DataSources() {
     },
   ];
 
+  const previewCols = datasetPreviewColumns.map((c) => ({ key: c, label: c }));
+
   return (
     <div className="animate-fade-in">
       <Breadcrumb items={[{ label: 'Data Sources' }]} />
