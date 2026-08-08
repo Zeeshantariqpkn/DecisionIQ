@@ -6,7 +6,6 @@ import { ChartCard } from '../components/ui/ChartCard';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import {
   fetchDatasets,
-  fetchDatasetPreviewColumns,
   deleteDataset,
 } from '../services/dataService';
 import { useToast } from '../context/ToastContext';
@@ -14,7 +13,6 @@ import { useToast } from '../context/ToastContext';
 export default function DataSources() {
   const { addToast } = useToast();
   const [datasets, setDatasets] = useState<Array<{ id: number; name: string; rows: number; columns: number; upload_date: string; status: string; size: string }>>([]);
-  const [previewColumns, setPreviewColumns] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [dragOver, setDragOver] = useState(false);
   const [selectedDataset, setSelectedDataset] = useState<number | null>(null);
@@ -22,12 +20,8 @@ export default function DataSources() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [ds, cols] = await Promise.all([
-          fetchDatasets(),
-          fetchDatasetPreviewColumns(),
-        ]);
+        const ds = await fetchDatasets();
         setDatasets(ds ?? []);
-        setPreviewColumns(cols ? cols.map((c: { column_name: string }) => c.column_name) : []);
       } catch (err) {
         console.error('Failed to load datasets:', err);
       } finally {
@@ -46,8 +40,6 @@ export default function DataSources() {
       addToast('Failed to delete dataset', 'error');
     }
   };
-
-  const datasetPreviewColumns = previewColumns;
 
   if (loading) return <LoadingSpinner />;
 
@@ -93,8 +85,6 @@ export default function DataSources() {
       ),
     },
   ];
-
-  const previewCols = datasetPreviewColumns.map((c) => ({ key: c, label: c }));
 
   return (
     <div className="animate-fade-in">
