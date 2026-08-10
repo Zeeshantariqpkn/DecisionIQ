@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
@@ -18,11 +19,17 @@ import {
   Star,
   Mail,
   MapPin,
+  Menu,
+  X,
 } from 'lucide-react';
 import { Accordion } from '../components/ui/Accordion';
 import { faqItems, pricingPlans, testimonials } from '../data/mockData';
 
 export default function Landing() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const closeMobileMenu = () => setMobileOpen(false);
+
   return (
     <div className="min-h-screen bg-white dark:bg-slate-900">
       {/* Nav */}
@@ -50,12 +57,64 @@ export default function Landing() {
               </Link>
               <Link
                 to="/register"
-                className="inline-flex items-center gap-2 bg-primary text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary-dark transition-all duration-200 active:scale-[0.97] cursor-pointer"
+                className="hidden sm:inline-flex items-center gap-2 bg-primary text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary-dark transition-all duration-200 active:scale-[0.97] cursor-pointer"
+              >
+                Get Started <ArrowRight size={15} />
+              </Link>
+              {/* Mobile menu toggle */}
+              <button
+                onClick={() => setMobileOpen((v) => !v)}
+                className="md:hidden flex items-center justify-center h-10 w-10 rounded-lg border border-border dark:border-slate-700 text-foreground dark:text-white hover:bg-surface dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+                aria-expanded={mobileOpen}
+                aria-controls="mobile-menu"
+              >
+                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile menu */}
+        <div
+          id="mobile-menu"
+          className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
+            mobileOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+          }`}
+        >
+          <nav className="px-4 pb-5 pt-2 flex flex-col gap-1 border-t border-border dark:border-slate-800">
+            {[
+              { href: '#features', label: 'Features' },
+              { href: '#how-it-works', label: 'How It Works' },
+              { href: '#pricing', label: 'Pricing' },
+              { href: '#faq', label: 'FAQ' },
+            ].map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                onClick={closeMobileMenu}
+                className="text-sm font-medium text-muted dark:text-slate-400 hover:text-foreground dark:hover:text-white hover:bg-surface dark:hover:bg-slate-800 px-3 py-2.5 rounded-lg transition-colors cursor-pointer"
+              >
+                {item.label}
+              </a>
+            ))}
+            <div className="flex items-center gap-3 pt-3 mt-1 border-t border-border dark:border-slate-800">
+              <Link
+                to="/login"
+                onClick={closeMobileMenu}
+                className="flex-1 text-center text-sm font-medium text-foreground dark:text-white border border-border dark:border-slate-700 px-4 py-2.5 rounded-lg hover:bg-surface dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/register"
+                onClick={closeMobileMenu}
+                className="flex-1 text-center inline-flex items-center justify-center gap-2 bg-primary text-white text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-primary-dark transition-all duration-200 active:scale-[0.97] cursor-pointer"
               >
                 Get Started <ArrowRight size={15} />
               </Link>
             </div>
-          </div>
+          </nav>
         </div>
       </header>
 
