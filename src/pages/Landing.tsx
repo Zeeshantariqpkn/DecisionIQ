@@ -321,7 +321,7 @@ export default function Landing() {
       </section>
 
       {/* Footer with navigation links */}
-      <footer className="bg-secondary dark:bg-slate-950 text-white py-16 px-4">
+      <footer className="bg-slate-900 dark:bg-slate-950 text-white py-16 px-4">
         <div className="max-w-6xl mx-auto">
           {/* Navigation Links */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
